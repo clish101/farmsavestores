@@ -1,114 +1,312 @@
 {% extends 'Inventory/base.html' %}
 
 {% block content %}
-<div class="container my-4">
-    <h1 class="text-center" style="color: #0047AB;">
-        Locked Products
-    </h1>
-    <form action="{% url 'locked_search' %}" method="POST" class="form-inline">
-        {% csrf_token %}
-        <div class="input-group">
-            <input
-                type="text"
-                name="quiz"
-                class="form-control form-control-sm"
-                placeholder="Search"
-                aria-label="Search"
-                required
-            >
-            <div class="input-group-append">
-                <button type="submit" class="btn btn-dark btn-sm">Search</button>
+<style>
+    .locked-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .locked-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .search-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .search-form {
+        display: flex;
+        gap: 10px;
+    }
+
+    .search-form input {
+        flex: 1;
+        min-width: 200px;
+        padding: 10px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px 0 0 8px;
+    }
+
+    .search-form button {
+        padding: 10px 16px;
+        border-radius: 0 8px 8px 0;
+        border: none;
+        background: #dc3545;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .search-form button:hover {
+        background: #c82333;
+    }
+
+    .locked-table-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .locked-table-section .table {
+        margin-bottom: 0;
+    }
+
+    .locked-table-section thead {
+        background: #f8f9fa;
+    }
+
+    .locked-table-section thead th {
+        padding: 15px;
+        font-weight: 600;
+        color: #495057;
+        border: none;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .locked-table-section tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .locked-table-section tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .locked-table-section tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .action-buttons-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .action-buttons-group form {
+        margin: 0;
+    }
+
+    .action-buttons-group button {
+        padding: 6px 12px;
+        font-size: 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-post {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-post:hover {
+        background: #c82333;
+        transform: translateY(-1px);
+    }
+
+    .btn-unlock {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-unlock:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 30px;
+    }
+
+    .empty-state-icon {
+        font-size: 48px;
+        color: #ccc;
+        margin-bottom: 15px;
+    }
+
+    .empty-state-text {
+        color: #999;
+        margin-bottom: 20px;
+        font-size: 16px;
+    }
+
+    .table-footer {
+        padding: 20px;
+        background: #f8f9fa;
+        border-top: 2px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    @media (max-width: 768px) {
+        .locked-header h1 {
+            font-size: 22px;
+        }
+
+        .search-form {
+            flex-direction: column;
+        }
+
+        .search-form input {
+            border-radius: 8px;
+        }
+
+        .search-form button {
+            border-radius: 8px;
+        }
+
+        .action-buttons-group {
+            flex-direction: column;
+        }
+
+        .action-buttons-group button {
+            width: 100%;
+        }
+
+        .table-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .table-footer .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="locked-header">
+        <h1>
+            <i class="fas fa-lock"></i>
+            Locked Products
+        </h1>
+    </div>
+
+    <!-- Search -->
+    <div class="search-section">
+        <form action="{% url 'locked_search' %}" method="POST" class="search-form">
+            {% csrf_token %}
+            <input type="text" name="quiz" placeholder="Search locked products..." required>
+            <button type="submit">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="locked-table-section">
+        {% if locked_products %}
+            <div class="table-responsive">
+                <table id="locked-products-table" class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-calendar"></i> Date Locked</th>
+                            <th><i class="fas fa-box"></i> Product</th>
+                            <th>Batch No</th>
+                            <th><i class="fas fa-user-tie"></i> Locked By</th>
+                            <th><i class="fas fa-cubes"></i> Quantity</th>
+                            <th><i class="fas fa-user"></i> Client</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lock in locked_products %}
+                        <tr>
+                            <td>{{ lock.date_locked|date:"M d, Y" }}</td>
+                            <td><strong>{{ lock.drug.name }}</strong></td>
+                            <td>{{ lock.drug.batch_no }}</td>
+                            <td>{{ lock.locked_by.username }}</td>
+                            <td><span class="badge badge-warning">{{ lock.quantity }}</span></td>
+                            <td>{{ lock.client }}</td>
+                            <td>
+                                <div class="action-buttons-group">
+                                    <form action="{% url 'post_locked_product' lock.id %}" method="POST">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-post" title="Post this locked item">
+                                            <i class="fas fa-check"></i> Post
+                                        </button>
+                                    </form>
+                                    <form action="{% url 'unlock_product' lock.id %}" method="POST">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-unlock" title="Unlock this item">
+                                            <i class="fas fa-unlock"></i> Unlock
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </form>
-    
-    <div class="table-responsive">
-        <table id="locked-products-table" class="table table-bordered table-hover">
-            <thead style="background-color: #001f3f; color: white;">
-                <tr>
-                    <th>Date Locked</th>
-                    <th>Product</th>
-                    <th>Batch No</th>
-                    <th>Locked By</th>
-                    <th>Quantity Locked</th>
-                    <th>Client</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if locked_products %}
-                    {% for lock in locked_products %}
-                    <tr style="background-color: {% cycle '#f0f8ff' '#dfefff' %}; color: #000;">
-                        <td>{{ lock.date_locked }}</td>
-                        <td>{{ lock.drug.name }}</td>
-                        <td>{{ lock.drug.batch_no }}</td>
-                        <td>{{ lock.locked_by.username }}</td>
-                        <td>{{ lock.quantity }}</td>
-                        <td>{{ lock.client }}</td>
-                        <td>
-                            <div class="d-flex">
-                                <form action="{% url 'post_locked_product' lock.id %}" method="POST" class="mr-2">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm">Post</button>
-                                </form>
-                                <form action="{% url 'unlock_product' lock.id %}" method="POST">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-secondary btn-sm">Unlock</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="7" class="text-center" style="color: #0047AB; font-weight: bold;">
-                            No locked products available.
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
-        
-        <!-- Download Button -->
-        <div class="card-footer d-flex justify-content-between">
-            <a href="{% url 'home' %}" class="btn btn-dark btn-sm">Back to home</a>
-            <button id="download-btn" class="btn btn-primary btn-sm">Download Table</button>
-        </div>
+
+            <!-- Footer -->
+            <div class="table-footer">
+                <a href="{% url 'home' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+                <button id="download-btn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <p class="empty-state-text">No locked products found.</p>
+                <a href="{% url 'home' %}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Inventory
+                </a>
+            </div>
+        {% endif %}
     </div>
 </div>
 
 <script>
-    // Download Locked Products Table Data as CSV
     document.getElementById("download-btn").addEventListener("click", function () {
-        // Get the table element
         const table = document.getElementById("locked-products-table");
-
-        // Initialize CSV content
         let csvContent = "";
 
-        // Loop through each row of the table
         for (let row of table.rows) {
-            const cells = Array.from(row.cells);
-
-            // Skip the header row
             if (row.rowIndex === 0) continue;
-
-            // Extract text content of each cell, joined by commas
+            const cells = Array.from(row.cells);
             const rowContent = cells.map(cell => `"${cell.textContent.trim()}"`).join(",");
             csvContent += rowContent + "\r\n";
         }
 
-        // Create a downloadable file
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
-
-        // Create an anchor tag and simulate a click to download the file
         const a = document.createElement("a");
         a.href = url;
-        a.download = "locked_products.csv"; // The name of the file
+        a.download = "locked_products.csv";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     });
 </script>
-{% endblock content %}
+{% endblock %}

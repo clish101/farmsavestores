@@ -8,6 +8,24 @@ from django.core.exceptions import PermissionDenied
 from django.utils.timezone import now
 
 
+class Client(models.Model):
+    """Model definition for Client."""
+    name = models.CharField(max_length=200, unique=True)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Meta definition for Client."""
+        verbose_name = 'Client'
+        verbose_name_plural = 'Clients'
+        ordering = ['name']
+
+    def __str__(self):
+        """Unicode representation of Client."""
+        return self.name
+
+
 
 # class Batch(models.Model):
 #     """Model definition for Batch."""
@@ -85,7 +103,7 @@ class Sale(models.Model):
         User, on_delete=models.PROTECT, null=True, blank=True)
     drug_sold = models.CharField(max_length=200)
     date_sold = models.DateTimeField(auto_now_add=True)
-    client = models.CharField(max_length=200, null=True, blank=True)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, null=True, blank=True)
     batch_no = models.CharField(max_length=200, null=True, blank=True)
     quantity = models.FloatField(null=True, blank=True)
     remaining_quantity = models.FloatField(null=True, blank=True)
@@ -140,7 +158,7 @@ class LockedProduct(models.Model):
     locked_by = models.ForeignKey(User, on_delete=models.PROTECT)
     date_locked = models.DateTimeField(auto_now_add=True)
     quantity = models.FloatField(null=True, blank=True)
-    client = models.CharField(max_length=200, null=True, blank=True)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, null=True, blank=True)
 
 @receiver(pre_save, sender=LockedProduct)
 def prevent_locked_drug_update(sender, instance, **kwargs):
@@ -179,7 +197,7 @@ class IssuedItem(models.Model):
 
 class PickingList(models.Model):
     date = models.DateField()
-    client = models.CharField(max_length=255)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, null=True, blank=True)
     product = models.CharField(max_length=255)
     batch_no = models.CharField(max_length=100)
     quantity = models.PositiveIntegerField()
@@ -205,7 +223,7 @@ class IssuedCannister(models.Model):
     batch_no = models.CharField(max_length=100)
     staff_on_duty = models.ForeignKey(User, on_delete=models.CASCADE, related_name="issued_by")
     returned_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="returned_by", null=True, blank=True)
-    client = models.CharField(max_length=255)
+    client = models.ForeignKey(Client, on_delete=models.PROTECT, null=True, blank=True)
     quantity = models.PositiveIntegerField()
     balance = models.PositiveIntegerField(null=True, blank=True)
     action = models.BooleanField(default=False)

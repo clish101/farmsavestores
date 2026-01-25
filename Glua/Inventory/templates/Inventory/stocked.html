@@ -1,133 +1,135 @@
 {% extends 'Inventory/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="py-2">
-    <a class="display-4 text-dark" style="text-decoration: none;">STOCK HISTORY</a>
-    <form action="{% url 'stocked' %}" method="GET">
-        {% csrf_token %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-        <div class="input-group">
-            <input class="form-control form-control-sm" type="date" name="date_start"
-                value="{{start_date|date:'d/m/Y'}}" placeholder="Search Drug" aria-label="Recipient's "
-                aria-describedby="my-addon">
-            <input class="form-control form-control-sm" type="date" name="date_end" value="{{end_date|date:'d/m/Y'}}"
-                placeholder="Search Drug" aria-label="Recipient's " aria-describedby="my-addon">
-            <div class="input-group-append">
-                <button type="submit" class="btn btn-dark btn-sm">Search</button>
-            </div>
-        </div>
-    </form>
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <div class="row-fluid">
-                            <div class="span2">
-                                <th style='border-top:none'>
-                                    Added by
-                                </th>
-                            </div>
-                            <div class="span2">
-                                <th style='border-top:none'>
-                                    Date Stocked
-                                </th>
-                            </div>
-                            <div class="span2">
-                                <th style='border-top:none'>
-                                    Supplier
-                                </th>
-                            </div>
-                            <div class="span2">
-                                <th style='border-top:none'>
-                                    Drug Name
-                                </th>
-                            </div>
-                            <div class="span2">
-                                <th style='border-top:none'>
-                                    Number
-                                </th>
-                            </div>
-                            <div class="span2">
-                                <th style='border-top:none'>
-                                    Total
-                                </th>
-                            </div>
-                        </div>
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
 
-                    </tr>
-                </thead>
-                <tbody>
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
 
-                    <div class="row-fluid">
-                        {% for stock in stocked %}
-                        <tr>
+    .filter-section .input-group {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+    }
 
+    .filter-section input[type="date"] {
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
 
-                            <div class="span2">
-                                <td style='border-top:none'>
-                                    {{stock.staff.username}}
-                                </td>
-                            </div>
-                            <div class="span2">
-                                <td style='border-top:none'>
-                                    {{stock.date_added}}
-                                </td>
-                            </div>
-                            <div class="span2">
-                                <td style='border-top:none'>
-                                    {{stock.supplier}}
-                                </td>
-                            </div>
-                            <div class="span2">
-                                <td style='border-top:none'>
-                                    {{stock.drug_name.name}}
-                                    {{stock.drug_name.buying_price}}
-                                </td>
-                            </div>
-                            <div class="span2">
-                                <td style='border-top:none'>
-                                    {{stock.number_added}}
-                                </td>
-                            </div>
-                            <div class="span2">
-                                <td style='border-top:none'>
-                                    {{stock.total}}
-                                </td>
-                            </div>
-                            {% empty %}
-                            <td>No stock were added within those days</td>
-                        </tr>
-                        {% endfor %}
-                    </div>
+    .filter-section .btn {
+        border-radius: 8px;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
 
+    .filter-section .btn:hover {
+        background: #0255c5;
+    }
+</style>
 
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-box"></i> Stock History
+        </h1>
+    </div>
 
-                </tbody>
+    <!-- Filter -->
+    <div class="filter-section">
+        <form action="{% url 'stocked' %}" method="GET" class="input-group">
+            {% csrf_token %}
+            <input class="form-control" type="date" name="date_start"
+                value="{{start_date|date:'Y-m-d'}}" placeholder="Start Date" aria-label="Start Date">
+            <input class="form-control" type="date" name="date_end" value="{{end_date|date:'Y-m-d'}}"
+                placeholder="End Date" aria-label="End Date">
+            <button type="submit" class="btn">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </form>
+    </div>
 
-            </table>
+    <!-- Table Section -->
+    <div class="table-responsive" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); overflow: hidden; margin-bottom: 30px;">
+        <table class="table table-striped" style="margin-bottom: 0;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <tr>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Added by</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Date Stocked</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Supplier</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Drug Name</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Quantity</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocked %}
+                <tr>
+                    <td style="padding: 12px 15px;">{{ stock.staff.username }}</td>
+                    <td style="padding: 12px 15px;">{{ stock.date_added }}</td>
+                    <td style="padding: 12px 15px;">{{ stock.supplier }}</td>
+                    <td style="padding: 12px 15px;">{{ stock.drug_name.name }} <span style="color: #6c757d; font-size: 0.85em;">({{ stock.drug_name.buying_price }})</span></td>
+                    <td style="padding: 12px 15px;"><span class="badge badge-info">{{ stock.number_added }}</span></td>
+                    <td style="padding: 12px 15px;"><span class="badge badge-success">{{ stock.total }}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 20px; text-align: center; color: #6c757d;">No stock added within the selected date range</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Footer Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             {% if user.is_superuser %}
-
-            <a href="{% url 'today' %}" class="float-left mr-5" style="text-decoration: none;">
-                <h4><strong>TODAY'S SALES </strong></h4>
+            <a href="{% url 'create' %}" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Add New Drug
             </a>
-
-            {% else %}
-            <a href="{% url 'today' %}" class="float-left mr-5" style="text-decoration: none;">
-                <h4><strong>TODAY'S SALES </strong></h4>
+            {% endif %}
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-home"></i> Return to Home
             </a>
-
-            {% endif %}
         </div>
-        <div class="card-footer d-flex">
-            {% if user.is_superuser %}
-            <a href="{% url 'create' %}" class="btn sharp btn-dark mr-2">Add New Drug</a>
-
-            {% endif %}
-            <a href="{% url 'home' %}" class="btn sharp btn-dark mr-2">Return to Glua</a>
-
-            <a href="{% url 'stocking' %}" class="btn sharp btn-warning ml-auto">Add Stock</a>
-        </div>
+        <a href="{% url 'stocking' %}" class="btn btn-warning" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-plus-circle"></i> Add Stock
+        </a>
     </div>
 </div>
-{% endblock content %}
+{% endblock %}

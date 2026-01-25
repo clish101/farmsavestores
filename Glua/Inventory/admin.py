@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from .models import Drug, Sale, Stocked, Measurement, LockedProduct, MarketingItem, IssuedItem, PickingList, Cannister, IssuedCannister
+from .models import Drug, Sale, Stocked, Measurement, LockedProduct, MarketingItem, IssuedItem, PickingList, Cannister, IssuedCannister, Client
 
 
 class LockedProductAdmin(admin.ModelAdmin):
@@ -21,6 +21,7 @@ class LockedProductAdmin(admin.ModelAdmin):
 
 admin.site.register(Drug)  # If you want to use the default admin for Drug
 admin.site.register(Sale)  # If you want to use the default admin for Sale
+admin.site.register(Client)  # Register Client model
 admin.site.register(MarketingItem)  # If you want to use the default admin for marketItem
 admin.site.register(IssuedItem)  # If you want to use the default admin for IssuedItem
 admin.site.register(LockedProduct, LockedProductAdmin)

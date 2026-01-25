@@ -1,51 +1,120 @@
 {% extends 'Inventory/base.html' %}
 
 {% block content %}
-<div class="container my-4">
-    <h1 class="text-center" style="color: #0047AB;">
-        <a href="{% url 'marketing_items' %}" style="color: #0047AB; text-decoration: none;">Marketing Items</a>
-    </h1>
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .page-header a {
+        color: white !important;
+        text-decoration: none !important;
+    }
+
+    .search-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .search-form {
+        display: flex;
+        gap: 10px;
+        max-width: 500px;
+    }
+
+    .search-form .input-group {
+        flex: 1;
+        display: flex;
+        align-items: stretch;
+    }
+
+    .search-form .form-control {
+        border-radius: 8px 0 0 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
+
+    .search-form .btn {
+        border-radius: 0 8px 8px 0;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-form .btn:hover {
+        background: #0255c5;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-tag"></i>
+            <a href="{% url 'marketing_items' %}">Marketing Items</a>
+        </h1>
+    </div>
     
-    <!-- Filters: Search -->
-    <div class="form-row mb-3">
-        <!-- Search Form -->
-        <form action="{% url 'marketing_search' %}" method="POST" class="form-inline col-md-7">
+    <!-- Search -->
+    <div class="search-section">
+        <form action="{% url 'marketing_search' %}" method="POST" class="search-form">
             {% csrf_token %}
             <div class="input-group">
                 <input
                     type="text"
                     name="search"
-                    class="form-control form-control-sm"
-                    placeholder="Search"
+                    class="form-control"
+                    placeholder="Search marketing items..."
                     aria-label="Search"
                 >
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-dark btn-sm">Search</button>
-                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-search"></i> Search
+                </button>
             </div>
         </form>
     </div>
 
     <!-- Table Section -->
-    <div class="table-responsive">
-        <table id="marketing-items-table" class="table table-bordered table-hover">
-            <thead style="background-color: #001f3f; color: white;">
+    <div class="table-responsive" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); overflow: hidden;">
+        <table id="marketing-items-table" class="table table-striped" style="margin-bottom: 0;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                 <tr>
-                    <th>Item</th>
-                    <th>Stock/Quantity</th>
-                    <th>Issued To</th>
-                    <th>Quantity Issued</th>
-                    <th>Action</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Item</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Stock/Quantity</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Issued To</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Quantity Issued</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in marketing_items %}
-                <tr style="background-color: {% cycle '#f0f8ff' '#dfefff' %}; color: #000;">
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.stock }}</td>
+                <tr>
+                    <td style="padding: 12px 15px;">{{ item.name }}</td>
+                    <td style="padding: 12px 15px;"><span class="badge badge-info">{{ item.stock }}</span></td>
                     <form action="{% url 'issue_item' %}" method="POST">
                         {% csrf_token %}
-                        <td>
+                        <td style="padding: 12px 15px;">
                             <input
                                 type="text"
                                 name="issued_to"
@@ -54,7 +123,7 @@
                                 required
                             >
                         </td>
-                        <td>
+                        <td style="padding: 12px 15px;">
                             <input
                                 type="number"
                                 name="quantity_issued"
@@ -65,62 +134,67 @@
                                 required
                             >
                         </td>
-                        <td>
+                        <td style="padding: 12px 15px;">
                             <button
                                 type="submit"
                                 name="item_id"
                                 value="{{ item.id }}"
                                 class="btn btn-primary btn-sm"
+                                style="display: inline-flex; align-items: center; gap: 6px;"
                             >
-                                Issue
+                                <i class="fas fa-check"></i> Issue
                             </button>
                         </td>
                     </form>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <!-- Footer Buttons Section -->
-    <div class="d-flex justify-content-between align-items-center mt-4">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 15px;">
         <!-- Buttons on the bottom left -->
-        <div>
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm">Back to Dashboard</a>
-            <a href="{% url 'issued_items_report' %}" class="btn btn-info btn-sm ml-2">Issued Items Report</a>
-            <a href="{% url 'create_marketing_item' %}" class="btn btn-success btn-sm ml-2">Create Marketing Item</a>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="{% url 'issued_items_report' %}" class="btn btn-info" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-file-alt"></i> Issued Items Report
+            </a>
+            <a href="{% url 'create_marketing_item' %}" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Create Item
+            </a>
         </div>
         
         <!-- Download Excel Button on the bottom right -->
-        <button id="download-excel-btn" class="btn btn-primary btn-sm">Download Excel</button>
+        <button id="download-excel-btn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-download"></i> Download
+        </button>
     </div>
 </div>
 
 <script>
-    // JavaScript function to export table data to Excel
     document.getElementById("download-excel-btn").addEventListener("click", function () {
-        const table = document.getElementById("marketing-items-table"); // Get the table element
-        const rows = Array.from(table.rows); // Convert table rows to array
+        const table = document.getElementById("marketing-items-table");
+        const rows = Array.from(table.rows);
 
-        // Create CSV content
         let csvContent = "";
         rows.forEach(row => {
-            const cells = Array.from(row.cells); // Convert row cells to array
-            const rowContent = cells.map(cell => `"${cell.textContent.trim()}"`).join(","); // Create CSV row with commas between cells
-            csvContent += rowContent + "\r\n"; // Add new row
+            const cells = Array.from(row.cells);
+            const rowContent = cells.map(cell => `"${cell.textContent.trim()}"`).join(",");
+            csvContent += rowContent + "\r\n";
         });
 
-        // Create a downloadable blob with CSV content
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
 
-        // Create and simulate a click on an anchor tag to download the file
         const a = document.createElement("a");
         a.href = url;
-        a.download = "marketing_items.csv"; // File name
+        a.download = "marketing_items.csv";
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a); // Clean up
+        document.body.removeChild(a);
     });
 </script>
-{% endblock content %}
+{% endblock %}

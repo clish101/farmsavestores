@@ -2,7 +2,7 @@ import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Sum, F, Q
-from .models import Drug, Sale, Stocked, LockedProduct, MarketingItem, IssuedItem, PickingList, Cannister, IssuedCannister
+from .models import Drug, Sale, Stocked, LockedProduct, MarketingItem, IssuedItem, PickingList, Cannister, IssuedCannister, Client
 from .forms import DrugCreation
 from django.contrib import messages
 from django.views.generic import ListView, UpdateView
@@ -18,6 +18,10 @@ from django.contrib.auth import logout
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from django.conf import settings
+import os
 
 
 # Create your views here.
@@ -41,6 +45,9 @@ def home(request):
     paginator = Paginator(drugs, per_page)
     page_obj = paginator.get_page(page_number)
 
+    # Get all clients for the dropdown
+    clients = Client.objects.all().order_by('name')
+
     # Check if the modal has already been shown in this session
     show_modal = not request.session.get('modal_shown', False)  # Only show modal if 'modal_shown' is not set or False
 
@@ -54,6 +61,7 @@ def home(request):
     # Pass these to the template
     context = {
         'drugs': page_obj,  # Pass the paginated drugs
+        'clients': clients,  # Pass clients for dropdown
         'expiring_soon': expiring_soon,
         'low_stock': low_stock,
         'show_modal': show_modal,  # Pass this flag to the template
@@ -111,8 +119,18 @@ class stockingListView(ListView):
 def sellDrug(request, pk):
     if request.method == 'POST':
         quantity = float(request.POST.get('quantity'))
-        client = request.POST.get('client')
+        client_id = request.POST.get('client')
         drug = get_object_or_404(Drug, pk=pk)
+
+        if not client_id:
+            messages.error(request, 'Please select a client')
+            return redirect('home')
+
+        try:
+            client = Client.objects.get(id=client_id)
+        except Client.DoesNotExist:
+            messages.error(request, 'Selected client does not exist')
+            return redirect('home')
 
         if drug.stock >= quantity:
             # Update drug stock
@@ -129,7 +147,7 @@ def sellDrug(request, pk):
                 remaining_quantity=drug.stock
             )
 
-            messages.success(request, f'{quantity} {drug.name} sold to {client}')
+            messages.success(request, f'{quantity} {drug.name} sold to {client.name}')
         else:
             messages.error(request, 'Not enough stock available')
 
@@ -139,8 +157,18 @@ def sellDrug(request, pk):
 def lockDrug(request, pk):
     if request.method == 'POST':
         quantity = float(request.POST.get('quantity'))
-        client = request.POST.get('client')
+        client_id = request.POST.get('client')
         drug = get_object_or_404(Drug, pk=pk)
+
+        if not client_id:
+            messages.error(request, 'Please select a client')
+            return redirect('home')
+
+        try:
+            client = Client.objects.get(id=client_id)
+        except Client.DoesNotExist:
+            messages.error(request, 'Selected client does not exist')
+            return redirect('home')
 
         if drug.stock >= quantity:
             # Lock product by creating a LockedProduct record
@@ -194,9 +222,9 @@ def binsearch(request):
 
     if query:
         bins = bins.filter(
-            Q(client__icontains=query) |
             Q(drug_sold__icontains=query) |
-            Q(batch_no__icontains=query)
+            Q(batch_no__icontains=query) |
+            Q(client__name__icontains=query)
         ).order_by('date_sold')
     return render(request, 'Inventory/bin.html', {'sales': bins})
 
@@ -305,6 +333,131 @@ def bin_report(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'Inventory/bin.html', {'sales': page_obj})
+
+@login_required
+def download_bin_report_excel(request):
+    """Export bin report as styled Excel file using template"""
+    try:
+        # Load template
+        template_path = os.path.join(settings.BASE_DIR, 'Inventory transfer record template11.xlsx')
+        wb = load_workbook(template_path)
+        ws = wb['Template']  # Work with Template sheet
+        
+        # Delete rows 3 and 4 (template placeholder data)
+        ws.delete_rows(3, 2)
+        
+        # Get all sales
+        sales = Sale.objects.all().order_by('-date_sold')
+        
+        # Apply search filter if provided
+        search_query = request.GET.get('search') or request.GET.get('q') or request.POST.get('q')
+        if search_query:
+            sales = sales.filter(
+                Q(drug_sold__icontains=search_query) |
+                Q(batch_no__icontains=search_query) |
+                Q(client__name__icontains=search_query)
+            )
+        
+        # Apply date range filters
+        start_date = request.GET.get('start_date') or request.POST.get('start_date')
+        end_date = request.GET.get('end_date') or request.POST.get('end_date')
+        
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                sales = sales.filter(date_sold__range=(start_date_obj, end_date_obj)).order_by('date_sold')
+            except ValueError:
+                pass
+        else:
+            sales = sales.order_by('-date_sold')
+        
+        # Start writing data from row 3 (after headers)
+        row_num = 3
+        for sale in sales:
+            ws.cell(row=row_num, column=1, value=sale.drug_sold if sale.drug_sold else '')
+            ws.cell(row=row_num, column=2, value=sale.batch_no if sale.batch_no else '')
+            ws.cell(row=row_num, column=3, value=sale.quantity)
+            ws.cell(row=row_num, column=4, value=sale.client.name if sale.client else '')
+            ws.cell(row=row_num, column=5, value=sale.date_sold.strftime('%Y-%m-%d') if sale.date_sold else '')
+            row_num += 1
+        
+        # Create response
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="bin_report.xlsx"'
+        wb.save(response)
+        return response
+        
+    except Exception as e:
+        return HttpResponse(f"Error generating Excel file: {str(e)}", status=500)
+
+
+@login_required
+def download_bin_card_excel(request):
+    """Export bin card as styled Excel file using template"""
+    try:
+        # Load template
+        template_path = os.path.join(settings.BASE_DIR, 'Inventory transfer record template11.xlsx')
+        wb = load_workbook(template_path)
+        ws = wb['Template']  # Work with Template sheet
+        
+        # Delete rows 3 and 4 (template placeholder data)
+        ws.delete_rows(3, 2)
+        
+        # Get all issued cannisters
+        issued_cannisters = IssuedCannister.objects.all().order_by('-date_issued')
+        
+        # Apply search filter if provided
+        search_query = request.GET.get('search') or request.POST.get('search')
+        if search_query:
+            issued_cannisters = issued_cannisters.filter(
+                Q(name__icontains=search_query) |
+                Q(batch_no__icontains=search_query) |
+                Q(staff_on_duty__username__icontains=search_query)
+            )
+        
+        # Apply date range filters
+        start_date = request.GET.get('start_date') or request.POST.get('start_date')
+        end_date = request.GET.get('end_date') or request.POST.get('end_date')
+        
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                issued_cannisters = issued_cannisters.filter(
+                    date_issued__range=(start_date_obj, end_date_obj)
+                ).order_by('date_issued')
+            except ValueError:
+                pass
+        else:
+            issued_cannisters = issued_cannisters.order_by('-date_issued')
+        
+        # Start writing data from row 3 (after headers)
+        row_num = 3
+        for cannister in issued_cannisters:
+            ws.cell(row=row_num, column=1, value=cannister.name if cannister.name else '')
+            ws.cell(row=row_num, column=2, value=cannister.batch_no if cannister.batch_no else '')
+            ws.cell(row=row_num, column=3, value=cannister.staff_on_duty.username if cannister.staff_on_duty else '')
+            ws.cell(row=row_num, column=4, value=cannister.client.name if cannister.client else '')
+            ws.cell(row=row_num, column=5, value=cannister.quantity)
+            ws.cell(row=row_num, column=6, value=cannister.balance)
+            ws.cell(row=row_num, column=7, value=cannister.date_issued.strftime('%Y-%m-%d') if cannister.date_issued else '')
+            ws.cell(row=row_num, column=8, value=cannister.date_returned.strftime('%Y-%m-%d') if cannister.date_returned else '')
+            row_num += 1
+        
+        # Create response
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="bin_card.xlsx"'
+        wb.save(response)
+        return response
+        
+    except Exception as e:
+        return HttpResponse(f"Error generating Excel file: {str(e)}", status=500)
+
 
 @login_required
 def dashboard(request):
@@ -1020,3 +1173,114 @@ def download_top_sold(request):
 
     return response
 
+
+# Client Management Views
+@login_required
+def client_list(request):
+    """Display all clients with pagination"""
+    per_page = request.GET.get('per_page', 10)
+    page_number = request.GET.get('page', 1)
+    
+    clients = Client.objects.all().order_by('name')
+    paginator = Paginator(clients, per_page)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'clients': page_obj,
+        'title': 'Client Management'
+    }
+    return render(request, 'Inventory/client_list.html', context)
+
+
+@login_required
+def create_client(request):
+    """Create a new client"""
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name', '').strip()
+            email = request.POST.get('email', '').strip()
+            phone = request.POST.get('phone', '').strip()
+            
+            if not name:
+                messages.error(request, 'Client name is required')
+                return redirect('create_client')
+            
+            # Check if client already exists
+            if Client.objects.filter(name__iexact=name).exists():
+                messages.warning(request, f'Client "{name}" already exists')
+                return redirect('client_list')
+            
+            # Create new client
+            client = Client.objects.create(
+                name=name,
+                email=email if email else None,
+                phone=phone if phone else None
+            )
+            messages.success(request, f'Client "{client.name}" has been successfully created')
+            return redirect('client_list')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            return redirect('create_client')
+    
+    context = {'title': 'Add New Client'}
+    return render(request, 'Inventory/create_client.html', context)
+
+
+@login_required
+def edit_client(request, pk):
+    """Edit an existing client"""
+    client = get_object_or_404(Client, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name', '').strip()
+            email = request.POST.get('email', '').strip()
+            phone = request.POST.get('phone', '').strip()
+            
+            if not name:
+                messages.error(request, 'Client name is required')
+                return redirect('edit_client', pk=pk)
+            
+            # Check if another client has this name
+            if Client.objects.filter(name__iexact=name).exclude(pk=pk).exists():
+                messages.warning(request, f'Another client with name "{name}" already exists')
+                return redirect('edit_client', pk=pk)
+            
+            # Update client
+            client.name = name
+            client.email = email if email else None
+            client.phone = phone if phone else None
+            client.save()
+            messages.success(request, f'Client "{client.name}" has been successfully updated')
+            return redirect('client_list')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+            return redirect('edit_client', pk=pk)
+    
+    context = {
+        'client': client,
+        'title': 'Edit Client'
+    }
+    return render(request, 'Inventory/edit_client.html', context)
+
+
+@login_required
+def delete_client(request, pk):
+    """Delete a client"""
+    client = get_object_or_404(Client, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            client_name = client.name
+            client.delete()
+            messages.success(request, f'Client "{client_name}" has been successfully deleted')
+            return redirect('client_list')
+        except Exception as e:
+            messages.error(request, f'Cannot delete this client: {str(e)}')
+            return redirect('client_list')
+    
+    context = {
+        'client': client,
+        'title': 'Delete Client'
+    }
+    return render(request, 'Inventory/delete_client.html', context)

@@ -1,33 +1,113 @@
 {% extends 'Inventory/base.html' %}
 
 {% block content %}
-<div class="container my-4">
-    <h1 class="text-center" style="color: #0047AB;">
-        <a href="{% url 'bin_card' %}" style="color: #0047AB; text-decoration: none;">
-            Cannister Bin Card
-        </a>
-    </h1>    
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .page-header a {
+        color: white !important;
+        text-decoration: none !important;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-section .input-group {
+        display: flex;
+        align-items: stretch;
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .filter-section .form-control,
+    .filter-section input[type="date"] {
+        border-radius: 8px 0 0 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
+
+    .filter-section .btn {
+        border-radius: 0 8px 8px 0;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-section .btn:hover {
+        background: #0255c5;
+    }
+
+    .filter-section .btn-secondary {
+        border-radius: 8px;
+        background: #6c757d;
+        margin-left: 0;
+    }
+
+    .filter-section .btn-secondary:hover {
+        background: #5a6268;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-cube"></i>
+            <a href="{% url 'bin_card' %}">Cannister Bin Card</a>
+        </h1>
+    </div>
+
     <!-- Filters: Search and Date Range -->
-    <div class="form-row mb-3">
+    <div class="filter-section">
         <!-- Search Form -->
-        <form action="{% url 'can_search' %}" method="GET" class="form-inline col-md-7">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search" aria-label="Search">
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-dark btn-sm">Search</button>
-                </div>
-            </div>
+        <form action="{% url 'can_search' %}" method="GET" class="input-group" style="flex: 1; min-width: 250px;">
+            <input type="text" name="search" class="form-control" placeholder="Search cannister..." aria-label="Search">
+            <button type="submit" class="btn">
+                <i class="fas fa-search"></i> Search
+            </button>
         </form>
         
         <!-- Date Range Filter -->
-        <form action="{% url 'can_filter' %}" method="POST" class="form-inline col-md-5 ml-auto">
+        <form action="{% url 'can_filter' %}" method="POST" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
             {% csrf_token %}
-            <div class="form-row">
-                <div class="col"><input type="date" name="start_date" class="form-control form-control-sm"></div>
-                <div class="col"><input type="date" name="end_date" class="form-control form-control-sm"></div>
-                <div class="col"><button type="submit" class="btn btn-primary btn-sm">Filter</button></div>
-                <div class="col"><button type="button" class="btn btn-secondary btn-sm" onclick="clearFiltersAndReload()">Clear</button></div>
-            </div>
+            <input type="date" name="start_date" class="form-control" style="max-width: 150px;">
+            <input type="date" name="end_date" class="form-control" style="max-width: 150px;">
+            <button type="submit" class="btn" style="border-radius: 8px; background: #28a745; padding: 10px 16px;">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <button type="button" class="btn" style="border-radius: 8px; background: #6c757d; padding: 10px 16px; display: flex; align-items: center; gap: 6px;" onclick="clearFiltersAndReload()">
+                <i class="fas fa-times"></i> Clear
+            </button>
         </form>
     </div>
 
@@ -103,7 +183,7 @@
     <!-- Footer Buttons -->
     <div class="d-flex justify-content-between mt-3">
         <a href="{% url 'cannister_list' %}" class="btn btn-dark btn-sm">Back to Cannister Page</a>
-        <button id="download-btn" class="btn btn-primary btn-sm">Download</button>
+        <a href="{% url 'download_bin_card_excel' %}" id="download-bin-card-btn" class="btn btn-primary btn-sm">Download Excel</a>
     </div>
 </div>
 
@@ -111,22 +191,29 @@
     function clearFiltersAndReload() {
         window.location.href = "{% url 'bin_card' %}";
     }
-    
-    document.getElementById("download-btn").addEventListener("click", function () {
-        const table = document.getElementById("bin-card-table");
-        let csvContent = "";
-        for (let row of table.rows) {
-            const cells = Array.from(row.cells);
-            csvContent += cells.map(cell => `"${cell.textContent.trim()}"`).join(",") + "\r\n";
+
+    // Update download button to include current filter parameters
+    document.getElementById('download-bin-card-btn').addEventListener('click', function(e) {
+        const params = new URLSearchParams(window.location.search);
+        const start_date = document.getElementById('start_date') ? document.getElementById('start_date').value : '';
+        const end_date = document.getElementById('end_date') ? document.getElementById('end_date').value : '';
+        const search = document.getElementById('search') ? document.getElementById('search').value : '';
+        
+        const url = new URL('{% url "download_bin_card_excel" %}', window.location.origin);
+        
+        // Add filter parameters if they exist
+        if (start_date) url.searchParams.append('start_date', start_date);
+        if (end_date) url.searchParams.append('end_date', end_date);
+        if (search) url.searchParams.append('search', search);
+        
+        // Also add any existing URL parameters
+        for (let [key, value] of params) {
+            if (!url.searchParams.has(key)) {
+                url.searchParams.append(key, value);
+            }
         }
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "cannister_bin_card.csv";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        
+        this.href = url.toString();
     });
 </script>
 {% endblock content %}

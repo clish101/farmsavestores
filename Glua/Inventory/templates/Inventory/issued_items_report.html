@@ -1,130 +1,202 @@
 {% extends 'Inventory/base.html' %}
 
 {% block content %}
-<div class="container my-4">
-    <h1 class="text-center" style="color: #0047AB;">
-        <a href="{% url 'issued_items_report' %}" style="color: #0047AB; text-decoration: none;">Issued Items Report</a>
-    </h1>
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .page-header a {
+        color: white !important;
+        text-decoration: none !important;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-section .input-group {
+        display: flex;
+        align-items: stretch;
+        flex: 1;
+        min-width: 250px;
+    }
+
+    .filter-section .form-control,
+    .filter-section input[type="date"] {
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
+
+    .filter-section .btn {
+        border-radius: 8px;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-section .btn:hover {
+        background: #0255c5;
+    }
+
+    .filter-section .btn-secondary {
+        background: #6c757d;
+    }
+
+    .filter-section .btn-secondary:hover {
+        background: #5a6268;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-list"></i>
+            <a href="{% url 'issued_items_report' %}">Issued Items Report</a>
+        </h1>
+    </div>
     
     <!-- Filters: Search and Date Range -->
-    <div class="form-row mb-3">
+    <div class="filter-section">
         <!-- Search Form -->
-        <form action="{% url 'issued_items_search' %}" method="POST" class="form-inline col-md-7">
+        <form action="{% url 'issued_items_search' %}" method="POST" class="input-group" style="flex: 1; min-width: 250px;">
             {% csrf_token %}
-            <div class="input-group">
-                <input
-                    type="text"
-                    name="query"
-                    class="form-control form-control-sm"
-                    placeholder="Search"
-                    aria-label="Search"
-                >
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-dark btn-sm">Search</button>
-                </div>
-            </div>
+            <input
+                type="text"
+                name="query"
+                class="form-control"
+                placeholder="Search items..."
+                aria-label="Search"
+            >
+            <button type="submit" class="btn">
+                <i class="fas fa-search"></i> Search
+            </button>
         </form>
         
-        <!-- Date Range Filter Form, Filter Button and Clear Button aligned to the right -->
-        <form action="{% url 'issued_items_filter' %}" method="POST" class="form-inline col-md-5 ml-auto">
+        <!-- Date Range Filter Form -->
+        <form action="{% url 'issued_items_filter' %}" method="POST" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
             {% csrf_token %}
-            <div class="form-row">
-                <div class="col">
-                    <input
-                        type="date"
-                        name="start_date"
-                        class="form-control form-control-sm"
-                        placeholder="Start Date"
-                    >
-                </div>
-                <div class="col">
-                    <input
-                        type="date"
-                        name="end_date"
-                        class="form-control form-control-sm"
-                        placeholder="End Date"
-                    >
-                </div>
-                <div class="col">
-                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                </div>
-                <div class="col">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearFiltersAndReload()">Clear</button>
-                </div>
-            </div>
+            <input
+                type="date"
+                name="start_date"
+                class="form-control"
+                placeholder="Start Date"
+                style="max-width: 150px;"
+            >
+            <input
+                type="date"
+                name="end_date"
+                class="form-control"
+                placeholder="End Date"
+                style="max-width: 150px;"
+            >
+            <button type="submit" class="btn" style="background: #28a745;">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="clearFiltersAndReload()">
+                <i class="fas fa-times"></i> Clear
+            </button>
         </form>
     </div>
 
     <!-- Table Section -->
-    <div class="table-responsive">
-        <table id="issued-items-table" class="table table-bordered table-hover">
-            <thead style="background-color: #001f3f; color: white;">
+    <div class="table-responsive" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); overflow: hidden;">
+        <table id="issued-items-table" class="table table-striped" style="margin-bottom: 0;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
                 <tr>
-                    <th>Date Issued</th>
-                    <th>Item</th>
-                    <th>Quantity Issued</th>
-                    <th>Issued To</th>
-                    <th>Issued By</th>
-                    <th>Stock Remaining</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Date Issued</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Item</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Quantity Issued</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Issued To</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Issued By</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Stock Remaining</th>
                 </tr>
             </thead>
             <tbody>
                 {% for issued_item in issued_items %}
-                <tr style="background-color: {% cycle '#f0f8ff' '#dfefff' %}; color: #000;">
-                    <td>{{ issued_item.date_issued }}</td>
-                    <td>{{ issued_item.item }}</td>
-                    <td>{{ issued_item.quantity_issued }}</td>
-                    <td>{{ issued_item.issued_to }}</td>
-                    <td>{{ issued_item.issued_by.username }}</td>
-                    <td>{{ issued_item.stock }}</td>
+                <tr>
+                    <td style="padding: 12px 15px;">{{ issued_item.date_issued }}</td>
+                    <td style="padding: 12px 15px;">{{ issued_item.item }}</td>
+                    <td style="padding: 12px 15px;"><span class="badge badge-info">{{ issued_item.quantity_issued }}</span></td>
+                    <td style="padding: 12px 15px;">{{ issued_item.issued_to }}</td>
+                    <td style="padding: 12px 15px;">{{ issued_item.issued_by.username }}</td>
+                    <td style="padding: 12px 15px;"><span class="badge badge-success">{{ issued_item.stock }}</span></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
-        <!-- Footer Buttons -->
-        <div class="card-footer d-flex justify-content-between align-items-center">
-            <a href="{% url 'marketing_items' %}" class="btn btn-dark btn-sm">Back to Inventory Page</a>
-            
-            <!-- Centered "Show" Dropdown Between the Two Buttons -->
-            <div class="d-flex justify-content-center align-items-center">
-                {% if issued_items.paginator.count > 10 %}
-                <label for="pagination-dropdown" class="mr-2 mb-0" style="line-height: 1.5;">Show:</label>
-                <select id="pagination-dropdown" class="form-control form-control-sm">
-                    <option value="10" {% if issued_items.paginator.per_page == 10 %}selected{% endif %}>10</option>
-                    <option value="20" {% if issued_items.paginator.per_page == 20 %}selected{% endif %}>20</option>
-                    <option value="50" {% if issued_items.paginator.per_page == 50 %}selected{% endif %}>50</option>
-                    <option value="100" {% if issued_items.paginator.per_page == 100 %}selected{% endif %}>100</option>
-                </select>
-                {% endif %}
-            </div>
-
-            <button id="download-btn" class="btn btn-primary btn-sm ml-2">Download Report</button>
-        </div>
-
-        <!-- Pagination Section -->
-        <div class="pagination mt-3 d-flex justify-content-center">
-            {% if issued_items.has_previous %}
-            <a href="?page={{ issued_items.previous_page_number }}&per_page={{ issued_items.paginator.per_page }}" class="btn btn-dark btn-sm mr-2">Previous</a>
-            {% endif %}
-            {% for page_num in issued_items.paginator.page_range %}
-                {% if page_num == issued_items.number %}
-                    <span class="btn btn-primary btn-sm mr-2">{{ page_num }}</span>
-                {% else %}
-                    <a href="?page={{ page_num }}&per_page={{ issued_items.paginator.per_page }}" class="btn btn-outline-dark btn-sm mr-2">{{ page_num }}</a>
-                {% endif %}
-            {% endfor %}
-            {% if issued_items.has_next %}
-            <a href="?page={{ issued_items.next_page_number }}&per_page={{ issued_items.paginator.per_page }}" class="btn btn-dark btn-sm ml-2">Next</a>
-            {% endif %}
-        </div>
     </div>
+
+    <!-- Footer Section -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 15px;">
+        <a href="{% url 'marketing_items' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-arrow-left"></i> Back to Inventory
+        </a>
+        
+        <button id="download-btn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-download"></i> Download Report
+        </button>
+    </div>
+
+    <!-- Pagination Section -->
+    {% if issued_items.has_other_pages %}
+    <div class="pagination mt-4 d-flex justify-content-center flex-wrap">
+        {% if issued_items.has_previous %}
+        <a href="?page={{ issued_items.previous_page_number }}" class="btn btn-outline-secondary btn-sm mr-2" style="display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        {% for page_num in issued_items.paginator.page_range %}
+            {% if page_num == issued_items.number %}
+                <span class="btn btn-primary btn-sm mr-2" style="pointer-events: none;">{{ page_num }}</span>
+            {% else %}
+                <a href="?page={{ page_num }}" class="btn btn-outline-secondary btn-sm mr-2">{{ page_num }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        {% if issued_items.has_next %}
+        <a href="?page={{ issued_items.next_page_number }}" class="btn btn-outline-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 <script>
     // Redirect to default page to clear filters
     function clearFiltersAndReload() {
-        const baseUrl = "{% url 'issued_items_report' %}"; // Replace 'issued_items_report' with the default view's URL name
+        const baseUrl = "{% url 'issued_items_report' %}";
         window.location.href = baseUrl;
     }
 
@@ -145,16 +217,5 @@
         a.click();
         document.body.removeChild(a);
     });
-
-    const paginationDropdown = document.getElementById("pagination-dropdown");
-    if (paginationDropdown) {
-        paginationDropdown.addEventListener("change", function () {
-            const selectedValue = this.value;
-            const urlParams = new URLSearchParams(window.location.search);
-            urlParams.set('per_page', selectedValue);
-            urlParams.set('page', 1); 
-            window.location.search = urlParams.toString();
-        });
-    }
 </script>
-{% endblock content %}
+{% endblock %}

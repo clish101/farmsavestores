@@ -1,127 +1,159 @@
 {% extends 'Inventory/base.html' %}
 {% block content %}
-<div class="py-2">
-    <h1 class="text-center display-4">ADD STOCK</h1>
-    <form action="{% url 'searchstock' %}" method="post">
-        {% csrf_token %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-        <div class="input-group">
-            <input class="form-control" type="text" name="s" placeholder="Search Drug" aria-label="Recipient's "
-                aria-describedby="my-addon">
-            <div class="input-group-append">
-                <button type="submit" class="btn btn-dark">Search</button>
-            </div>
-        </div>
-    </form>
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <th style='border-top:none'>
-                                    Drug Name
-                                </th>
-                            </div>
-                            <div class="col-md-2">
-                                <th style='border-top:none'>
-                                    Stock
-                                </th>
-                            </div>
-                            <div class="col-md-2">
-                                <th style='border-top:none'>
-                                    
-                                </th>
-                            </div>
-                            <div class="col-md-2">
-                                <th style='border-top:none'></th>
-                                <!-- <button class="btn btn-danger">Sell</button> -->
-                            </div>
-                        </div>
-                    </tr>
-                </thead>
-                <tbody>
-                    <div class="row">
-                        {% for drug in drugs%}
-                        <tr>
-                            <div class="col-md-6">
-                                <td style="border-bottom:none">
-                                    {{drug.name}}
-                                </td>
-                            </div>
-                            <div class="col-md-2">
-                                <td>
-                                    {{drug.stock}}
-                                </td>
-                            </div>
-                            <div class="col-md-2">
-                                <td>
-                                    {{drug.buying_price}}
-                                </td>
-                            </div>
-                            <div class="col-md-2">
-                                <td>
-                                    <form action="{% url 'addstock' drug.id %}" method="post">
-                                        {% csrf_token %}
-                                        <div class="input-group">
-                                            <input class="form-control" type="text" name="supplier"
-                                                placeholder="Supplier" aria-label="Recipient's "
-                                                aria-describedby="my-addon">
-                                            <input class="form-control" type="number" name="added"
-                                                placeholder="Quantity Received" aria-label="Recipient's "
-                                                aria-describedby="my-addon">
-                                            <div class="input-group-append">
-                                                <button class="input-group-text" type="submit">Add</button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </td>
-                            </div>
-                        </tr>
-                        <tr>
-                            <td>
-                                {% endfor %}
-                                {% if is_paginated %}
-                                {% if page_obj.has_previous %}
-                                <a href="?page=1" class="btn btn-outline-primary">First</a>
-                                <a href="?page={{page_obj.previous_page_number}}"
-                                    class="btn btn-outline-primary">Previous</a>
-                                {% endif %}
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
 
-                                {% for num in page_obj.paginator.page_range %}
-                                {% if page_obj.number == num %}
-                                <a href="?page={{num}}" class="btn btn-primary text-white bg-primary">{{ num }}</a>
+    .search-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
 
-                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                <a href="?page={{ num }}" class="btn btn-outline-primary">{{ num }}</a>
-                                {% endif %}
+    .search-section .input-group {
+        display: flex;
+        align-items: stretch;
+        max-width: 400px;
+    }
 
-                                {% endfor %}
+    .search-section .form-control {
+        border-radius: 8px 0 0 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
 
-                                {% if page_obj.has_next %}
-                                <a href="?page={{page_obj.next_page_number}}" class="btn btn-outline-primary">Next</a>
-                                <a href="?page={{page_obj.paginator.num_pages}}"
-                                    class="btn btn-outline-primary">Last</a>
-                                {% endif %}
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </div>
-                </tbody>
-            </table>
-            <!-- <ul class="list-group list-group-flush">
-                <li class="list-group-item active">Text</li>
-                <li class="list-group-item disabled" aria-disabled="true">Disabled item</li>
-            </ul> -->
-        </div>
-        <div class="card-footer d-flex">
-            {% if user.is_superuser %}
-            <a href="{% url 'create' %}" class="btn sharp btn-dark mr-2">Add New Drug</a>
-            <a href="{% url 'stocked' %}" class="btn sharp btn-dark mr-2">STOCK HISTORY</a>
+    .search-section .btn {
+        border-radius: 0 8px 8px 0;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .search-section .btn:hover {
+        background: #0255c5;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-plus-circle"></i> Add Stock
+        </h1>
+    </div>
+
+    <!-- Search -->
+    <div class="search-section">
+        <form action="{% url 'searchstock' %}" method="post" class="input-group">
+            {% csrf_token %}
+            <input class="form-control" type="text" name="s" placeholder="Search Drug..." aria-label="Search">
+            <button type="submit" class="btn">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-responsive" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); overflow: hidden; margin-bottom: 30px;">
+        <table class="table table-striped" style="margin-bottom: 0;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <tr>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; width: 30%;">Drug Name</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; width: 15%; text-align: center;">Current Stock</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; width: 15%; text-align: center;">Price</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; width: 40%;">Add Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for drug in drugs %}
+                <tr>
+                    <td style="padding: 12px 15px; vertical-align: middle;">{{ drug.name }}</td>
+                    <td style="padding: 12px 15px; text-align: center; vertical-align: middle;">
+                        <span class="badge badge-info">{{ drug.stock }}</span>
+                    </td>
+                    <td style="padding: 12px 15px; text-align: center; vertical-align: middle;">{{ drug.buying_price }}</td>
+                    <td style="padding: 12px 15px; vertical-align: middle;">
+                        <form action="{% url 'addstock' drug.id %}" method="post" style="display: flex; gap: 8px;">
+                            {% csrf_token %}
+                            <input class="form-control form-control-sm" type="text" name="supplier"
+                                placeholder="Supplier" required style="flex: 1;">
+                            <input class="form-control form-control-sm" type="number" name="added"
+                                placeholder="Qty" required style="flex: 1; max-width: 100px;">
+                            <button class="btn btn-primary btn-sm" type="submit" style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+                                <i class="fas fa-check"></i> Add
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: #6c757d;">No drugs found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center flex-wrap gap-2" style="margin-bottom: 30px;">
+        {% if page_obj.has_previous %}
+        <a href="?page=1" class="btn btn-outline-secondary btn-sm">First</a>
+        <a href="?page={{page_obj.previous_page_number}}" class="btn btn-outline-secondary btn-sm">Previous</a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <span class="btn btn-primary btn-sm" style="pointer-events: none;">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}" class="btn btn-outline-secondary btn-sm">{{ num }}</a>
             {% endif %}
-            <a href="{% url 'home' %}" class="btn sharp btn-warning ml-auto">Return to Glua</a>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?page={{page_obj.next_page_number}}" class="btn btn-outline-secondary btn-sm">Next</a>
+        <a href="?page={{page_obj.paginator.num_pages}}" class="btn btn-outline-secondary btn-sm">Last</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Footer Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            {% if user.is_superuser %}
+            <a href="{% url 'create' %}" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Add New Drug
+            </a>
+            <a href="{% url 'stocked' %}" class="btn btn-info" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-history"></i> Stock History
+            </a>
+            {% endif %}
         </div>
+        <a href="{% url 'home' %}" class="btn btn-warning" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-home"></i> Return to Home
+        </a>
     </div>
 </div>
-{% endblock content %}
+{% endblock %}

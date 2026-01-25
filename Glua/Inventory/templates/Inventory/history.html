@@ -1,126 +1,150 @@
 {% extends 'Inventory/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="py-2">
-    <a class="display-4 text-dark" style="text-decoration: none;">SALES HISTORY</a>
-    <form action="{% url 'history' %}" method="GET">
-        {% csrf_token %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-        <div class="input-group">
-            <input class="form-control form-control-sm" type="date" name="start_date"
-                value="{{start_date|date:'d/m/Y'}}" placeholder="Search Drug" aria-label="Recipient's "
-                aria-describedby="my-addon">
-            <input class="form-control form-control-sm" type="date" name="end_date" value="{{end_date|date:'d/m/Y'}}"
-                placeholder="Search Drug" aria-label="Recipient's " aria-describedby="my-addon">
-            <div class="input-group-append">
-                <button type="submit" class="btn btn-dark btn-sm">Search</button>
-            </div>
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-section .input-group {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .filter-section input[type="date"] {
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
+
+    .filter-section .btn {
+        border-radius: 8px;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-section .btn:hover {
+        background: #0255c5;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-history"></i> Sales History
+        </h1>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-section">
+        <form action="{% url 'history' %}" method="GET" class="input-group">
+            {% csrf_token %}
+            <input class="form-control" type="date" name="start_date"
+                value="{{start_date|date:'Y-m-d'}}" placeholder="Start Date" aria-label="Start Date">
+            <input class="form-control" type="date" name="end_date" value="{{end_date|date:'Y-m-d'}}"
+                placeholder="End Date" aria-label="End Date">
+            <button type="submit" class="btn">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-responsive" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); overflow: hidden;">
+        <table class="table table-striped" style="margin-bottom: 0;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <tr>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Staff On Duty</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Date Sold</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Drug Name</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Customer</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Sold At</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td style="padding: 12px 15px;">{{sale.seller.username}}</td>
+                    <td style="padding: 12px 15px;">{{sale.date_sold}}</td>
+                    <td style="padding: 12px 15px;">{{sale.quantity}} {{sale.drug_sold}}</td>
+                    <td style="padding: 12px 15px;">{{sale.customer}}</td>
+                    <td style="padding: 12px 15px;">{{sale.sale_price}}</td>
+                    <td style="padding: 12px 15px;"><span class="badge badge-success">{{sale.total}}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding: 20px; text-align: center; color: #6c757d;">No sales found within the selected date range</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Summary Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 30px;">
+        {% if user.is_superuser %}
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+            <h6 style="margin: 0 0 10px 0; font-weight: 600; opacity: 0.9;">RUNNING PROFIT</h6>
+            <h3 style="margin: 0; font-size: 24px; font-weight: 600;">Ksh {{profit|intcomma}}</h3>
         </div>
-    </form>
-    <div class="card">
-        <div class="card-body">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <div class="row">
-                            <div class="col">
-                                <th style='border-top:none'>
-                                    Staff On Duty
-                                </th>
-                            </div>
-                            <div class="col">
-                                <th style='border-top:none'>
-                                    Date Sold
-                                </th>
-                            </div>
-                            <div class="col">
-                                <th style='border-top:none'>
-                                    Drug Name
-                                </th>
-                            </div>
-                            <div class="col">
-                                <th style='border-top:none'>
-                                    Customer
-                                </th>
-                            </div>
-                            <div class="col">
-                                <th style='border-top:none'>
-                                    Sold At
-                                </th>
-                            </div>
-                            <div class="col">
-                                <th style='border-top:none'>
-                                    Total
-                                </th>
-                            </div>
+        {% endif %}
 
-                        </div>
-                    </tr>
-                </thead>
-                <tbody>
-                    <div class="row d-flex align-items-center">
-                        {% for sale in sales %}
-                        <tr>
-                            <div class="col">
-                                <td>
-                                    {{sale.seller.username}}
-                                </td>
-                            </div>
-                            <div class="col">
-                                <td>
-                                    {{sale.date_sold}}
-                                </td>
-                            </div>
-                            <div class="col">
-                                <td>
-                                    {{sale.quantity}}
-                                    {{sale.drug_sold}}
-                                </td>
-                            </div>
-                            <div class="col">
-                                <td>
-                                    {{sale.customer}}
-                                </td>
-                            </div>
-                            <div class="col">
-                                <td>
-                                    {{sale.sale_price}}
-                                </td>
-                            </div>
-                            <div class="col">
-                                <td>
-                                    {{sale.total}}
-                                </td>
-                            </div>
-                            {% empty %}
-                            <td>Nothing happened within those days</td>
-
-                        </tr>
-                        {% endfor %}
-                    </div>
-
-                </tbody>
-
-            </table>
-            {% if user.is_superuser %}
-            <h4 class="float-left mr-5"><strong>RUNNING PROFIT Ksh {{profit|intcomma}}</strong></h4>
-            {% endif %}
-
-            <a href="{% url 'today' %}" class="float-left mr-5" style="text-decoration: none;">
-                <h4><strong>TODAY'S SALES </strong></h4>
-            </a>
-            <h4 class="float-right mr-5"><strong>TOTAL SALES Ksh {{total_sales|intcomma}}</strong></h4>
-
-        </div>
-        <div class="card-footer d-flex">
-            {% if user.is_superuser %}
-            <a href="{% url 'create' %}" class="btn sharp btn-dark mr-2">Add New Drug</a>
-
-            {% endif %}
-            <a href="{% url 'home' %}" class="btn sharp btn-dark mr-2">Return to Glua</a>
-
-            <a href="{% url 'stocking' %}" class="btn sharp btn-warning ml-auto">Add Stock</a>
+        <div style="background: linear-gradient(135deg, #0275d8 0%, #0255c5 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+            <h6 style="margin: 0 0 10px 0; font-weight: 600; opacity: 0.9;">TOTAL SALES</h6>
+            <h3 style="margin: 0; font-size: 24px; font-weight: 600;">Ksh {{total_sales|intcomma}}</h3>
         </div>
     </div>
+
+    <!-- Footer Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; flex-wrap: wrap; gap: 15px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            {% if user.is_superuser %}
+            <a href="{% url 'create' %}" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-plus"></i> Add New Drug
+            </a>
+            {% endif %}
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-home"></i> Return to Home
+            </a>
+        </div>
+        <a href="{% url 'stocking' %}" class="btn btn-warning" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-plus-circle"></i> Add Stock
+        </a>
+    </div>
 </div>
-{% endblock content %}
+{% endblock %}

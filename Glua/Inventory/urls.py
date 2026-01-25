@@ -19,6 +19,7 @@ urlpatterns = [
     path('history/', views.salehistory, name='history'),
     path('today/', views.todaysales, name='today'),
     path('bin-report/', views.bin_report, name='bin_report'),
+    path('bin-report/download/', views.download_bin_report_excel, name='download_bin_report_excel'),
     path('out-of-stock/', views.out_of_stock, name='out_of_stock'),
     path('expiring-soon/', views.expiring_soon, name='expiring_soon'),
     path('vaccines/', views.home, name='home'),
@@ -45,11 +46,16 @@ urlpatterns = [
     path('cannisters/', views.cannister_list, name='cannister_list'),
     path('cannisters/issue/<int:cannister_id>/', views.issue_cannister, name='issue_cannister'),
     path('bin-card/', views.bin_card, name='bin_card'),
+    path('bin-card/download/', views.download_bin_card_excel, name='download_bin_card_excel'),
     path('bin-card/search/', views.bin_search, name='can_search'),
     path('bin-card/filter/', views.can_filter, name='can_filter'),
     path('bin-card/return/<int:issued_cannister_id>/', views.return_cannister, name='return_cannister'),
     path('search-cannister/', views.search_cannister, name='search_cannister'),
     path('download/top-sold/', views.download_top_sold, name='download_top_sold'),
-
+    # Client management paths
+    path('clients/', views.client_list, name='client_list'),
+    path('clients/create/', views.create_client, name='create_client'),
+    path('clients/edit/<int:pk>/', views.edit_client, name='edit_client'),
+    path('clients/delete/<int:pk>/', views.delete_client, name='delete_client'),
 ]
 

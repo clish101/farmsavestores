@@ -156,29 +156,29 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <h6>Expiring Soon:</h6>
-                <ul>
+            <div class="modal-body" style="padding: 30px;">
+                <h6 style="margin-bottom: 12px; font-weight: 600;">Expiring Soon:</h6>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
                     {% for drug in expiring_soon %}
-                        <li>{{ drug.name }} - Expiry Date: {{ drug.expiry_date|date:"M Y" }}</li>
+                        <li style="margin-bottom: 8px;">{{ drug.name }} - Expiry Date: {{ drug.expiry_date|date:"M Y" }}</li>
                     {% empty %}
                         <li>No drugs expiring soon.</li>
                     {% endfor %}
                 </ul>
 
-                <h6>Low in Stock:</h6>
-                <ul>
+                <h6 style="margin-bottom: 12px; font-weight: 600;">Low in Stock:</h6>
+                <ul style="margin-left: 20px; margin-bottom: 20px;">
                     {% for drug in low_stock %}
-                        <li>{{ drug.name }} - Stock: {{ drug.stock }}</li>
+                        <li style="margin-bottom: 8px;">{{ drug.name }} - Stock: {{ drug.stock }}</li>
                     {% empty %}
                         <li>No drugs are low in stock.</li>
                     {% endfor %}
                 </ul>
 
-                <h6>Out of Stock:</h6>
-                <ul>
+                <h6 style="margin-bottom: 12px; font-weight: 600;">Out of Stock:</h6>
+                <ul style="margin-left: 20px;">
                     {% for drug in out_of_stock %}
-                        <li>{{ drug.name }} - Stock: {{ drug.stock }}</li>
+                        <li style="margin-bottom: 8px;">{{ drug.name }} - Stock: {{ drug.stock }}</li>
                     {% empty %}
                         <li>No drugs are out of stock.</li>
                     {% endfor %}

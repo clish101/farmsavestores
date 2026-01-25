@@ -1,0 +1,187 @@
+{% extends 'Inventory/base.html' %}
+
+{% block content %}
+<style>
+    .form-page-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .form-card-header {
+        background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+        color: white;
+        padding: 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .form-card-header h4 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 20px;
+    }
+
+    .form-card-body {
+        padding: 30px;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 10px;
+    }
+
+    .form-group input {
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #6f42c1;
+        box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.1);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .form-actions .btn {
+        flex: 1;
+        padding: 12px;
+        font-weight: 500;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .form-actions .btn-submit {
+        background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+        color: white;
+    }
+
+    .form-actions .btn-submit:hover {
+        background: linear-gradient(135deg, #5a32a3 0%, #452e82 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    }
+
+    .form-actions .btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .form-actions .btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .required-text {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .helper-text {
+        font-size: 12px;
+        color: #999;
+        margin-top: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .form-card-body {
+            padding: 20px;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="container-fluid" style="padding: 30px;">
+    <div class="form-page-container">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+                    <strong>
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                    </strong> {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="form-card">
+            <div class="form-card-header">
+                <i class="fas fa-user-edit"></i>
+                <h4>Edit Client</h4>
+            </div>
+            <div class="form-card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="name">
+                            <i class="fas fa-user"></i> Client Name <span class="required-text">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="e.g. ABC Pharmacy Ltd" value="{{ client.name }}">
+                        <div class="helper-text">Enter the full name of the client</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               placeholder="e.g. contact@pharmacy.com" value="{{ client.email|default:'' }}">
+                        <div class="helper-text">Optional - enter client email address</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">
+                            <i class="fas fa-phone"></i> Phone Number
+                        </label>
+                        <input type="tel" class="form-control" id="phone" name="phone" 
+                               placeholder="e.g. +1 (555) 123-4567" value="{{ client.phone|default:'' }}">
+                        <div class="helper-text">Optional - enter client phone number</div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-submit">
+                            <i class="fas fa-save"></i> Update Client
+                        </button>
+                        <a href="{% url 'client_list' %}" class="btn btn-cancel">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

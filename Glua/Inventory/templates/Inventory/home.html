@@ -1,111 +1,424 @@
 {% extends 'Inventory/base.html' %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Navigation and Search Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="{% url 'dashboard' %}" class="text-primary font-weight-bold" style="text-decoration: none; font-size: 1.5rem;">Pharmsave Enterprises Ltd</a>
-        <form action="{% url 'search' %}" method="POST" class="form-inline">
+<style>
+    .home-page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: white;
+        text-decoration: none !important;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .header-title:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+    }
+
+    .search-form .input-group {
+        max-width: 300px;
+        display: flex;
+        align-items: stretch;
+    }
+
+    .search-form .form-control {
+        border-radius: 8px 0 0 8px;
+        border: none;
+        padding: 10px 15px;
+        height: auto;
+    }
+
+    .search-form .btn {
+        border-radius: 0 8px 8px 0;
+        border: none;
+        padding: 10px 20px;
+        background: #0275d8;
+        color: white;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: auto;
+    }
+
+    .search-form .btn:hover {
+        background: #0255c5;
+    }
+
+    .table-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .table-header {
+        background: #f8f9fa;
+        padding: 20px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-header h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #drugs-table {
+        margin-bottom: 0;
+        table-layout: fixed;
+    }
+
+    #drugs-table thead th {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    #drugs-table thead th:nth-child(1) {
+        width: 15%;
+    }
+
+    #drugs-table thead th:nth-child(2) {
+        width: 8%;
+    }
+
+    #drugs-table thead th:nth-child(3) {
+        width: 8%;
+    }
+
+    #drugs-table thead th:nth-child(4) {
+        width: 10%;
+    }
+
+    #drugs-table thead th:nth-child(5) {
+        width: 8%;
+    }
+
+    #drugs-table thead th:nth-child(6) {
+        width: 10%;
+    }
+
+    #drugs-table thead th:nth-child(7) {
+        width: 15%;
+        min-width: 120px;
+    }
+
+    #drugs-table thead th:nth-child(8) {
+        width: 10%;
+    }
+
+    #drugs-table thead th:nth-child(9) {
+        width: 16%;
+        min-width: 200px;
+    }
+
+    #drugs-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    #drugs-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    #drugs-table tbody td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        justify-items: stretch;
+        min-height: 90px;
+        align-content: center;
+    }
+
+    .action-buttons form:nth-child(1) .btn-action {
+        grid-column: 1;
+    }
+
+    .action-buttons form:nth-child(2) .btn-action {
+        grid-column: 2;
+    }
+
+    .action-buttons form:nth-child(3) .btn-action {
+        grid-column: 1 / -1;
+    }
+
+    .btn-action {
+        padding: 10px 14px;
+        font-size: 12px;
+        border-radius: 6px;
+        white-space: nowrap;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-weight: 500;
+        width: 100%;
+        height: 40px;
+    }
+
+    .btn-action.btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+
+    .btn-action.btn-danger:hover {
+        background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-action.btn-table-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-action.btn-table-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+    }
+
+    .btn-action.btn-table-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+    }
+
+    .btn-action.btn-table-info:hover {
+        background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+    }
+
+    .table-footer {
+        padding: 20px;
+        background: #f8f9fa;
+        border-top: 2px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .footer-buttons-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .footer-buttons-group .btn {
+        padding: 10px 16px;
+        font-size: 13px;
+        border-radius: 8px;
+    }
+
+    .pagination-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .show-entries {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .show-entries select {
+        padding: 6px 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+        .home-page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .search-form .input-group {
+            max-width: 100%;
+        }
+
+        .table-footer {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .footer-buttons-group {
+            flex-direction: column;
+        }
+
+        .footer-buttons-group .btn {
+            width: 100%;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-action {
+            width: 100%;
+        }
+
+        .pagination-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn.pagination-btn {
+            flex: 1;
+        }
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header Section -->
+    <div class="home-page-header">
+        <a href="http://localhost:8000/" class="header-title" style="text-decoration: none; color: white;">
+            <i class="fas fa-pills"></i> Farmsavestores
+        </a>
+        <form action="{% url 'search' %}" method="POST" class="search-form">
             {% csrf_token %}
             <div class="input-group">
                 <input
                     type="text"
                     name="q"
-                    class="form-control form-control-sm"
-                    placeholder="Search Drug"
+                    class="form-control"
+                    placeholder="Search drug..."
                     aria-label="Search"
                     required
                 >
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-dark btn-sm">Search</button>
-                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-search"></i> Search
+                </button>
             </div>
         </form>
     </div>
 
     <!-- Drugs Table -->
-    <div class="card">
-        <div class="card-body">
-            <!-- Scrollable Table Wrapper for Small Screens -->
-            <div class="table-responsive">
-                <table id="drugs-table" class="table table-striped table-sm text-right">
-                    <thead>
-                        <tr>
-                            <th class="text-left" style="background-color: #fbe7e4; color: #d9534f;">Vaccine</th>
-                            <th style="background-color: #e8f8f5; color: #007b83;">Batch No</th>
-                            <th style="background-color: #fff5e6; color: #f0ad4e;">Stock</th>
-                            <th style="background-color: #e6f7ff; color: #0275d8;">Expiry Date</th>
-                            <th style="background-color: #f9e6ff; color: #6f42c1;">Dose Pack</th>
-                            <th style="background-color: #e6ffe6; color: #5cb85c;">Re-order Level</th>
-                            <th class="text-center" style="background-color: #fff9e6; color: #f0ad4e;">Client</th>
-                            <th class="text-center" style="background-color: #ffebf0; color: #d63384;">Quantity Sold</th>
-                            <th  style="background-color: #ebf5ff; color: #0d6efd;">Action</th>
-                            <th style="background-color: #ebf5ff; color: #0d6efd;"></th>
-                            <th style="background-color: #ebf5ff; color: #0d6efd;"></th>
-                        </tr>
-                    </thead>
+    <div class="table-section">
+        <div class="table-header">
+            <h5>Available Vaccines</h5>
+        </div>
+
+        <div class="table-responsive">
+            <table id="drugs-table" class="table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th class="text-left" style="background-color: #fbe7e4; color: #d9534f;">Vaccine</th>
+                        <th style="background-color: #e8f8f5; color: #007b83;">Batch No</th>
+                        <th style="background-color: #fff5e6; color: #f0ad4e;">Stock</th>
+                        <th style="background-color: #e6f7ff; color: #0275d8;">Expiry Date</th>
+                        <th style="background-color: #f9e6ff; color: #6f42c1;">Dose Pack</th>
+                        <th style="background-color: #e6ffe6; color: #5cb85c;">Re-order Level</th>
+                        <th class="text-center" style="background-color: #fff9e6; color: #f0ad4e;">Client</th>
+                        <th class="text-center" style="background-color: #ffebf0; color: #d63384;">Quantity</th>
+                        <th class="text-center" style="background-color: #ebf5ff; color: #0d6efd;">Actions</th>
+                    </tr>
+                </thead>
                     <tbody>
                         {% for drug in drugs %}
                         <tr>
-                            <td class="text-left">
-                                <!-- {% if user.is_superuser %}
-                                <a href="{% url 'modify' drug.pk %}" style="text-decoration: none;">
-                                    {{ drug.name }}
-                                </a>
-                                {% else %}
-                                {% endif %} -->
-                                {{ drug.name }}
-                            </td>
+                            <td class="text-left">{{ drug.name }}</td>
                             <td>{{ drug.batch_no }}</td>
-                            <td>{{ drug.stock }}</td>
+                            <td>
+                                {% if drug.stock > drug.reorder_level %}
+                                    <span class="badge badge-success">{{ drug.stock }}</span>
+                                {% elif drug.stock > 0 %}
+                                    <span class="badge badge-warning">{{ drug.stock }}</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ drug.stock }}</span>
+                                {% endif %}
+                            </td>
                             <td style="white-space: nowrap;">{{ drug.expiry_date|date:"M Y"  }}</td>
                             <td>{{ drug.dose_pack|floatformat:0 }}</td>
                             <td>{{ drug.reorder_level|floatformat:0 }}</td>
                             <td>
-                                <form action="{% url 'sell' drug.id %}" method="POST" id="sell-form-{{ drug.id }}">
-                                    {% csrf_token %}
-                                    <input
-                                        type="text"
-                                        name="client"
-                                        class="form-control form-control-sm text-center"
-                                        placeholder="Client name"
-                                        required
-                                    >
+                                <select name="client" id="client-{{ drug.id }}" class="form-control form-control-sm client-select" required data-drug-id="{{ drug.id }}">
+                                    <option value=""></option>
+                                    {% for client in clients %}
+                                        <option value="{{ client.id }}">{{ client.name }}</option>
+                                    {% endfor %}
+                                </select>
                             </td>
                             <td>
-                                    <input
-                                        type="number"
-                                        name="quantity"
-                                        id="quantity-{{ drug.id }}"
-                                        class="form-control form-control-sm text-center"
-                                        placeholder="Quantity"
-                                        min="0.1"
-                                        step="0.1"
-                                        value="1"
-                                        required
-                                    >
+                                <input
+                                    type="number"
+                                    name="quantity"
+                                    id="quantity-{{ drug.id }}"
+                                    class="form-control form-control-sm"
+                                    placeholder="Qty"
+                                    min="0.1"
+                                    step="0.1"
+                                    value="1"
+                                    required
+                                    style="text-align: center;"
+                                >
                             </td>
-                            <td>
-                                <div class="d-flex">
-                                    <button type="submit" class="btn btn-danger btn-sm mr-2">Post</button>
+                            <td class="text-center">
+                                <div class="action-buttons">
+                                    <form action="{% url 'sell' drug.id %}" method="POST" id="sell-form-{{ drug.id }}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="client" id="sell-client-{{ drug.id }}" value="">
+                                        <input type="hidden" name="quantity" id="sell-quantity-{{ drug.id }}" value="">
+                                        <button type="submit" class="btn btn-action btn-danger" title="Post Sale" onclick="setSellDetails({{ drug.id }})">
+                                            <i class="fas fa-check"></i> Post
+                                        </button>
+                                    </form>
+                                    
+                                    <form action="{% url 'lock_item' drug.id %}" method="POST" id="lock-form-{{ drug.id }}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="quantity" id="lock-quantity-{{ drug.id }}">
+                                        <input type="hidden" name="client" id="lock-client-{{ drug.id }}">
+                                        <button type="submit" class="btn btn-action btn-table-secondary" title="Lock Item" onclick="setLockDetails({{ drug.id }})">
+                                            <i class="fas fa-lock"></i> Lock
+                                        </button>
+                                    </form>
+
+                                    <form action="{% url 'add_to_picking_list' drug.id %}" method="POST" id="picking-list-form-{{ drug.id }}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="client" id="picking-client-{{ drug.id }}">
+                                        <input type="hidden" name="quantity" id="picking-quantity-{{ drug.id }}">
+                                        <button type="submit" class="btn btn-action btn-table-info" title="Add to Picking List" onclick="setPickingDetails({{ drug.id }})">
+                                            <i class="fas fa-list"></i> Picking
+                                        </button>
+                                    </form>
                                 </div>
-                                </form>
-                            </td>
-                            <td>
-                                <form action="{% url 'lock_item' drug.id %}" method="POST" class="mr-2" id="lock-form-{{ drug.id }}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="quantity" id="lock-quantity-{{ drug.id }}">
-                                    <input type="hidden" name="client" id="lock-client-{{ drug.id }}">
-                                    <button type="submit" class="btn btn-secondary btn-sm" onclick="setLockDetails({{ drug.id }})">Lock</button>
-                                </form>
-                            </td>
-                            <td>
-                                <form action="{% url 'add_to_picking_list' drug.id %}" method="POST" id="picking-list-form-{{ drug.id }}">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="client" id="picking-client-{{ drug.id }}">
-                                    <input type="hidden" name="quantity" id="picking-quantity-{{ drug.id }}">
-                                    <button type="submit" class="btn btn-info btn-sm" onclick="setPickingDetails({{ drug.id }})">Picking List</button>
-                                </form>
                             </td>
                         </tr>
                         {% endfor %}
@@ -114,23 +427,30 @@
             </div>
         </div>
 
-        <!-- Card Footer -->
-        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap">
-            <div>
+        <!-- Footer Section -->
+        <div class="table-footer">
+            <div class="footer-buttons-group">
                 {% if user.is_superuser %}
-                <a href="{% url 'create' %}" class="btn btn-dark btn-sm mr-2">Add New Batch</a>
+                <a href="{% url 'create' %}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-plus"></i> Add New Batch
+                </a>
                 {% endif %}
-                <a href="{% url 'bin_report' %}" class="btn btn-dark btn-sm mr-2">Bin Report</a>
-                <a href="{% url 'locked_products' %}" class="btn btn-dark btn-sm">Locked Products</a>
-                <a href="{% url 'picking_list' %}" class="btn btn-dark btn-sm">Picking List</a>
+                <a href="{% url 'bin_report' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-trash"></i> Bin Report
+                </a>
+                <a href="{% url 'locked_products' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-lock"></i> Locked Products
+                </a>
+                <a href="{% url 'picking_list' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-list"></i> Picking List
+                </a>
             </div>
 
-            <!-- Show Dropdown and Pagination positioned here -->
-            <div class="d-flex flex-column align-items-center mt-3">
+            <div class="pagination-wrapper">
                 {% if drugs.paginator.count > 10 %}
-                    <div class="d-flex align-items-center mb-2">
-                        <label for="pagination-dropdown" class="mr-2 mb-0" style="line-height: 1.5;">Show:</label>
-                        <select id="pagination-dropdown" class="form-control form-control-sm" onchange="location = this.value;">
+                    <div class="show-entries">
+                        <label for="pagination-dropdown" class="mb-0">Show:</label>
+                        <select id="pagination-dropdown" onchange="location = this.value;">
                             <option value="?per_page=10&page={{ drugs.paginator.num_pages }}" {% if drugs.paginator.per_page == 10 %}selected{% endif %}>10</option>
                             <option value="?per_page=20&page={{ drugs.paginator.num_pages }}" {% if drugs.paginator.per_page == 20 %}selected{% endif %}>20</option>
                             <option value="?per_page=50&page={{ drugs.paginator.num_pages }}" {% if drugs.paginator.per_page == 50 %}selected{% endif %}>50</option>
@@ -138,44 +458,58 @@
                         </select>
                     </div>
                 {% endif %}
-                <!-- Pagination Numbers and "Next" Button -->
-                <div class="pagination mt-3 d-flex justify-content-center">
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
                     {% if drugs.has_previous %}
-                    <a href="?page={{ drugs.previous_page_number }}&per_page={{ drugs.paginator.per_page }}" class="btn btn-dark btn-sm mr-2">Previous</a>
+                    <a href="?page={{ drugs.previous_page_number }}&per_page={{ drugs.paginator.per_page }}" class="btn btn-outline-secondary pagination-btn">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
                     {% endif %}
+                    
                     {% for page_num in drugs.paginator.page_range %}
                         {% if page_num == drugs.number %}
-                            <span class="btn btn-primary btn-sm mr-2">{{ page_num }}</span>
+                            <span class="btn btn-primary pagination-btn" style="cursor: default;">{{ page_num }}</span>
                         {% else %}
-                            <a href="?page={{ page_num }}&per_page={{ drugs.paginator.per_page }}" class="btn btn-outline-dark btn-sm mr-2">{{ page_num }}</a>
+                            <a href="?page={{ page_num }}&per_page={{ drugs.paginator.per_page }}" class="btn btn-outline-secondary pagination-btn">{{ page_num }}</a>
                         {% endif %}
                     {% endfor %}
+                    
                     {% if drugs.has_next %}
-                    <a href="?page={{ drugs.next_page_number }}&per_page={{ drugs.paginator.per_page }}" class="btn btn-dark btn-sm ml-2">Next</a>
+                    <a href="?page={{ drugs.next_page_number }}&per_page={{ drugs.paginator.per_page }}" class="btn btn-outline-secondary pagination-btn">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
                     {% endif %}
                 </div>
-            </div>
 
-            <!-- Download Button -->
-            <div>
-                <button id="download-btn" class="btn btn-primary btn-sm">Download Table</button>
+                <button id="download-btn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-download"></i> Download
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    // Function to set sell form details before submission
+    function setSellDetails(drugId) {
+        var quantity = document.getElementById('quantity-' + drugId).value;
+        var client = document.getElementById('client-' + drugId).value;
+        document.getElementById('sell-client-' + drugId).value = client;
+        document.getElementById('sell-quantity-' + drugId).value = quantity;
+    }
+
     // Function to set the quantity and client to the lock form before submission
     function setLockDetails(drugId) {
         var quantity = document.getElementById('quantity-' + drugId).value;
-        var client = document.getElementById('sell-form-' + drugId).elements['client'].value;
+        var client = document.getElementById('client-' + drugId).value;
         document.getElementById('lock-quantity-' + drugId).value = quantity;
         document.getElementById('lock-client-' + drugId).value = client;
     }
+    
     // Function to set picking list details before form submission
     function setPickingDetails(drugId) {
         var quantity = document.getElementById('quantity-' + drugId).value;
-        var client = document.getElementById('sell-form-' + drugId).elements['client'].value;
+        var client = document.getElementById('client-' + drugId).value;
 
         document.getElementById('picking-quantity-' + drugId).value = quantity;
         document.getElementById('picking-client-' + drugId).value = client;
@@ -191,7 +525,7 @@
         // Loop through each row of the table
         for (let row of table.rows) {
             const cells = Array.from(row.cells);
-            const filteredCells = cells.filter((_, index) => index !== 6 && index !== 7 && index !== 8 && index !== 9);
+            const filteredCells = cells.filter((_, index) => index !== 6 && index !== 7 && index !== 8);
             const rowContent = filteredCells.map(cell => `"${cell.textContent.trim()}"`).join(",");
             csvContent += rowContent + "\r\n";
         }

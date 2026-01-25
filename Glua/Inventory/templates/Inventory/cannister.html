@@ -1,97 +1,161 @@
 {% extends 'Inventory/base.html' %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Navigation and Search Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="{% url 'cannister_list' %}" class="text-primary font-weight-bold" style="text-decoration: none; font-size: 1.5rem;">Cannisters</a>
-        <form action="{% url 'search_cannister' %}" method="POST" class="form-inline">
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #0d1b2a 0%, #1a2f4a 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .page-header a {
+        color: white !important;
+        text-decoration: none !important;
+    }
+
+    .search-form {
+        display: flex;
+        gap: 10px;
+    }
+
+    .search-form .input-group {
+        display: flex;
+        align-items: stretch;
+        min-width: 300px;
+    }
+
+    .search-form .form-control {
+        border-radius: 8px 0 0 8px;
+        border: 1px solid #dee2e6;
+        padding: 10px 12px;
+        height: auto;
+    }
+
+    .search-form .btn {
+        border-radius: 0 8px 8px 0;
+        background: #0275d8;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        cursor: pointer;
+        height: auto;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-form .btn:hover {
+        background: #0255c5;
+    }
+</style>
+
+<div class="container-fluid" style="padding: 0 30px;">
+    <!-- Header Section -->
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-cube"></i>
+            <a href="{% url 'cannister_list' %}">Cannisters</a>
+        </h1>
+        <form action="{% url 'search_cannister' %}" method="POST" class="search-form">
             {% csrf_token %}
             <div class="input-group">
                 <input
                     type="text"
                     name="q"
-                    class="form-control form-control-sm"
-                    placeholder="Search Cannister"
+                    class="form-control"
+                    placeholder="Search Cannister..."
                     aria-label="Search"
                     required
                 >
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-dark btn-sm">Search</button>
-                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-search"></i> Search
+                </button>
             </div>
         </form>
     </div>
 
     <!-- Cannisters Table -->
-    <div class="card">
-        <div class="card-body">
-            <!-- Scrollable Table Wrapper for Small Screens -->
-            <div class="table-responsive">
-                <table id="cannisters-table" class="table table-striped table-sm text-right">
-                    <thead>
-                        <tr>
-                            <th class="text-left" style="background-color: #ffebcd; color: #a0522d;">Cannister</th>
-                            <th style="background-color: #e0ffff; color: #008b8b;">Batch No</th>
-                            <th style="background-color: #f5f5dc; color: #8b4513;">Stock</th>
-                            <th style="background-color: #e6e6fa; color: #6a5acd;">Litres</th>
-                            <th class="text-center" style="background-color: #fafad2; color: #b8860b;">Issued to</th>
-                            <th class="text-center" style="background-color: #ffe4e1; color: #d2691e;">Quantity</th>
-                            <th class="text-center" style="background-color: #dfffd8; color: #2e8b57;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for cannister in cannisters %}
-                        <tr>
-                            <td class="text-left">{{ cannister.name }}</td>
-                            <td>{{ cannister.batch_no }}</td>
-                            <td>{{ cannister.stock }}</td>
-                            <td>{{ cannister.litres }}</td>
-                            <td>
-                                <form action="{% url 'issue_cannister' cannister.id %}" method="POST">
-                                    {% csrf_token %}
-                                    <input
-                                        type="text"
-                                        name="client"
-                                        class="form-control form-control-sm text-center"
-                                        placeholder="Issued to"
-                                        required
-                                    >
-                            </td>
-                            <td>
-                                    <input
-                                        type="number"
-                                        name="quantity"
-                                        class="form-control form-control-sm text-center"
-                                        placeholder="Quantity"
-                                        min="1"
-                                        required
-                                    >
-                            </td>
-                            <td class="text-center">
-                                <button  type="submit" class="btn btn-danger btn-sm">Issue</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Card Footer -->
-        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap">
-            <div>
-                <a href="{% url 'bin_card' %}" class="btn btn-dark btn-sm mr-2">Bin Report</a>
-                <a href="{% url 'dashboard' %}" class="btn btn-dark btn-sm mr-2">Dashboard</a>
-            </div>
-
-            <!-- Download Button Positioned at Bottom Right -->
-            <div class="ml-auto">
-                <button id="download-btn" class="btn btn-primary btn-sm">Download Table</button>
-            </div>
-        </div>
+    <div class="table-responsive" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); overflow: hidden; margin-bottom: 30px;">
+        <table id="cannisters-table" class="table table-striped" style="margin-bottom: 0; table-layout: fixed;">
+            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <tr>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: left;">Cannister</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: center;">Batch No</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: center;">Stock</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: center;">Litres</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: center;">Issued to</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: center;">Quantity</th>
+                    <th style="padding: 15px; font-weight: 600; color: #495057; text-align: center;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cannister in cannisters %}
+                <tr>
+                    <td style="padding: 12px 15px; text-align: left;">{{ cannister.name }}</td>
+                    <td style="padding: 12px 15px; text-align: center;">{{ cannister.batch_no }}</td>
+                    <td style="padding: 12px 15px; text-align: center;"><span class="badge badge-info">{{ cannister.stock }}</span></td>
+                    <td style="padding: 12px 15px; text-align: center;">{{ cannister.litres }}</td>
+                    <form action="{% url 'issue_cannister' cannister.id %}" method="POST" style="display: contents;">
+                        {% csrf_token %}
+                        <td style="padding: 12px 15px; text-align: center;">
+                            <input
+                                type="text"
+                                name="client"
+                                class="form-control form-control-sm"
+                                placeholder="Issued to"
+                                required
+                            >
+                        </td>
+                        <td style="padding: 12px 15px; text-align: center;">
+                            <input
+                                type="number"
+                                name="quantity"
+                                class="form-control form-control-sm"
+                                placeholder="Qty"
+                                min="1"
+                                required
+                            >
+                        </td>
+                        <td style="padding: 12px 15px; text-align: center;">
+                            <button type="submit" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-check"></i> Issue
+                            </button>
+                        </td>
+                    </form>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+
+    <!-- Footer Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{% url 'bin_card' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-trash"></i> Bin Report
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+        <button id="download-btn" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-download"></i> Download
+        </button>
+    </div>
+</div>
 </div>
 
 <script>
