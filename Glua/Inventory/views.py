@@ -22,9 +22,47 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from django.conf import settings
 import os
+try:
+    import pycountry
+    import phonenumbers
+except Exception:
+    pycountry = None
+    phonenumbers = None
 
 
 # Create your views here.
+
+def get_countries():
+    """Return a list of country calling codes and names.
+    If `phonenumbers` and `pycountry` are available build a comprehensive list;
+    otherwise return a small default list.
+    """
+    if phonenumbers and pycountry:
+        code_map = phonenumbers.COUNTRY_CODE_TO_REGION_CODE
+        countries_dict = {}
+        for code, regions in code_map.items():
+            names = []
+            for r in regions:
+                try:
+                    country = pycountry.countries.get(alpha_2=r)
+                    if country:
+                        names.append(country.name)
+                    else:
+                        names.append(r)
+                except Exception:
+                    names.append(r)
+            # join unique names for this code
+            countries_dict[str(code)] = ', '.join(sorted(set(names)))
+        countries = [{'code': code, 'name': name} for code, name in sorted(countries_dict.items(), key=lambda x: int(x[0]))]
+        return countries
+    # fallback small list
+    return [
+        {'code': '254', 'name': 'Kenya'},
+        {'code': '1', 'name': 'United States'},
+        {'code': '44', 'name': 'United Kingdom'},
+        {'code': '234', 'name': 'Nigeria'},
+        {'code': '91', 'name': 'India'},
+    ]
 
 @login_required
 def home(request):
@@ -208,7 +246,10 @@ def search(request):
         drugs = Drug.objects.filter(
             Q(name__icontains=query) | Q(batch_no__icontains=query))
 
-    context = {'drugs': drugs}
+    # Get all clients for the dropdown
+    clients = Client.objects.all().order_by('name')
+
+    context = {'drugs': drugs, 'clients': clients}
     return render(request, 'Inventory/home.html', context)
 
 
@@ -976,7 +1017,7 @@ def picking_list_view(request):
     query = request.GET.get('search', '')
     if query:
         picking_list = picking_list.filter(
-            Q(client__icontains=query) |  
+            Q(client__name__icontains=query) |  
             Q(product__icontains=query) |
             Q(batch_no__icontains=query) |
             Q(quantity__icontains=query) |
@@ -1003,12 +1044,12 @@ def picking_list_view(request):
 def add_to_picking_list(request, drug_id):
     if request.method == "POST":
         drug = get_object_or_404(Drug, id=drug_id)
-        client = request.POST.get("client", "").strip()
+        client_id = request.POST.get("client", "").strip()
         quantity = request.POST.get("quantity", "0").strip()
 
         # Validate client field (ensure it's not empty)
-        if not client:
-            messages.error(request, "Client name cannot be empty.")
+        if not client_id:
+            messages.error(request, "Client must be selected.")
             return redirect("home")
 
         # Ensure quantity is a valid integer
@@ -1025,6 +1066,13 @@ def add_to_picking_list(request, drug_id):
         # Check if enough stock is available
         if drug.stock < quantity:
             messages.error(request, "Not enough stock available.")
+            return redirect("home")
+
+        # Get the Client instance
+        try:
+            client = Client.objects.get(id=client_id)
+        except Client.DoesNotExist:
+            messages.error(request, "Selected client does not exist.")
             return redirect("home")
 
         # Add item to the picking list
@@ -1044,15 +1092,19 @@ def add_to_picking_list(request, drug_id):
 
 def cannister_list(request):
     cannisters = Cannister.objects.all()
-    return render(request, 'Inventory/cannister.html', {'cannisters': cannisters})
+    clients = Client.objects.all().order_by('name')
+    return render(request, 'Inventory/cannister.html', {'cannisters': cannisters, 'clients': clients})
 
 @login_required
 def issue_cannister(request, cannister_id):
     cannister = get_object_or_404(Cannister, id=cannister_id)
     
     if request.method == "POST":
-        client = request.POST.get("client")
+        client_id = request.POST.get("client")
         quantity = int(request.POST.get("quantity"))
+        
+        # Get the client object
+        client = get_object_or_404(Client, id=client_id) if client_id else None
 
         if quantity > 0 and quantity <= cannister.stock:
             # Deduct stock
@@ -1090,7 +1142,7 @@ def bin_search(request):
     issued_cannisters = IssuedCannister.objects.filter(
         Q(name__icontains=query) | 
         Q(batch_no__icontains=query) |
-        Q(client__icontains=query) |
+        Q(client__name__icontains=query) |
         Q(staff_on_duty__username__icontains=query)
     ).order_by('-date_issued')
 
@@ -1142,6 +1194,7 @@ def return_cannister(request, issued_cannister_id):
 def search_cannister(request):
     query = request.POST.get('q', '')  # Get search input
     results = []
+    clients = Client.objects.all().order_by('name')
 
     if query:
         results = Cannister.objects.filter(
@@ -1151,7 +1204,7 @@ def search_cannister(request):
             Q(litres__icontains=query)    # Search by litres
         )
 
-    return render(request, 'Inventory/cannister.html', {'cannisters': results, 'query': query})
+    return render(request, 'Inventory/cannister.html', {'cannisters': results, 'query': query, 'clients': clients})
 @login_required
 def download_top_sold(request):
     # Aggregate total quantity sold for each product
@@ -1199,7 +1252,10 @@ def create_client(request):
         try:
             name = request.POST.get('name', '').strip()
             email = request.POST.get('email', '').strip()
-            phone = request.POST.get('phone', '').strip()
+            country_code = request.POST.get('country_code', '').strip()
+            phone_number = request.POST.get('phone_number', '').strip()
+            # combine into a stored phone format (e.g. +254712345678)
+            phone = f"+{country_code}{phone_number}" if country_code and phone_number else (phone_number or '')
             
             if not name:
                 messages.error(request, 'Client name is required')
@@ -1222,7 +1278,9 @@ def create_client(request):
             messages.error(request, f'An error occurred: {str(e)}')
             return redirect('create_client')
     
-    context = {'title': 'Add New Client'}
+    # Provide full countries list where available
+    countries = get_countries()
+    context = {'title': 'Add New Client', 'countries': countries}
     return render(request, 'Inventory/create_client.html', context)
 
 
@@ -1235,7 +1293,9 @@ def edit_client(request, pk):
         try:
             name = request.POST.get('name', '').strip()
             email = request.POST.get('email', '').strip()
-            phone = request.POST.get('phone', '').strip()
+            country_code = request.POST.get('country_code', '').strip()
+            phone_number = request.POST.get('phone_number', '').strip()
+            phone = f"+{country_code}{phone_number}" if country_code and phone_number else (phone_number or '')
             
             if not name:
                 messages.error(request, 'Client name is required')
@@ -1257,9 +1317,35 @@ def edit_client(request, pk):
             messages.error(request, f'An error occurred: {str(e)}')
             return redirect('edit_client', pk=pk)
     
+    # Prepare countries list and parse existing phone into code + number
+    countries = get_countries()
+
+    # Default parsed values
+    parsed_country = ''
+    parsed_number = ''
+    if client.phone:
+        # Try to parse a leading +<code> from stored phone like +254712345678
+        p = ''.join(ch for ch in client.phone if ch.isdigit() or ch == '+')
+        if p.startswith('+'):
+            p_digits = p[1:]
+            # attempt to match known country codes
+            for c in [c['code'] for c in countries]:
+                if p_digits.startswith(c):
+                    parsed_country = c
+                    parsed_number = p_digits[len(c):]
+                    break
+            if not parsed_country:
+                # fallback: no known code matched; leave full digits in number
+                parsed_number = p_digits
+        else:
+            parsed_number = ''.join(ch for ch in p if ch.isdigit())
+
     context = {
         'client': client,
-        'title': 'Edit Client'
+        'title': 'Edit Client',
+        'countries': countries,
+        'country_code': parsed_country,
+        'phone_number': parsed_number,
     }
     return render(request, 'Inventory/edit_client.html', context)
 

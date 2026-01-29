@@ -166,9 +166,16 @@
                         <label for="phone">
                             <i class="fas fa-phone"></i> Phone Number
                         </label>
-                        <input type="tel" class="form-control" id="phone" name="phone" 
-                               placeholder="e.g. +1 (555) 123-4567">
-                        <div class="helper-text">Optional - enter client phone number</div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select name="country_code" id="country_code" class="form-control" style="max-width:200px; height:40px; font-size:16px;">
+                                {% for c in countries %}
+                                    <option value="{{ c.code }}">+{{ c.code }} {{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                   placeholder="Local number e.g. 712345678">
+                        </div>
+                        <div class="helper-text">Optional - select country code and enter local phone number</div>
                     </div>
 
                     <div class="form-actions">
